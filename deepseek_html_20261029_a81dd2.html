@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>六级背记</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; padding: 20px 10px; display: flex; flex-direction: column; align-items: center; height: 100vh; box-sizing: border-box; }
+        .container { width: 100%; max-width: 500px; display: flex; flex-direction: column; height: 100%; }
+        
+        /* 卡片容器 */
+        .card-container { perspective: 1000px; width: 100%; height: 350px; margin-bottom: 20px; flex-shrink: 0; }
+        .card { width: 100%; height: 100%; position: relative; transition: transform 0.6s; transform-style: preserve-3d; cursor: pointer; }
+        .card.is-flipped { transform: rotateY(180deg); }
+        
+        /* 卡片正反面 */
+        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; text-align: center; font-size: 22px; font-weight: 500; }
+        .card-back { transform: rotateY(180deg); background: #e6f7ff; color: #0050b3; }
+        .tag { position: absolute; top: 10px; left: 10px; font-size: 12px; background: #d9d9d9; padding: 2px 8px; border-radius: 10px; color: #666; }
+        
+        /* 评分按钮 */
+        .actions { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 30px; }
+        .btn { flex: 1; padding: 15px 0; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; }
+        .btn-bad { background: #ff4d4f; }
+        .btn-ok { background: #faad14; }
+        .btn-good { background: #52c41a; }
+        .hidden { display: none !important; }
+
+        /* 底部导航 */
+        .nav { position: fixed; bottom: 0; left: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 100; }
+        .nav-item { font-size: 14px; color: #999; cursor: pointer; padding: 10px; }
+        .nav-item.active { color: #1890ff; font-weight: bold; }
+        
+        /* 统计页 */
+        #stats-page { display: none; text-align: center; flex-grow: 1; padding-top: 20px;}
+        #empty-state { text-align: center; color: #999; margin-top: 50px; }
+        .progress-text { margin-bottom: 10px; color: #666; font-size: 14px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 背记页面 -->
+        <div id="study-page" style="display: flex; flex-direction: column; flex-grow: 1;">
+            <div class="progress-text" id="progress-text">加载中...</div>
+            
+            <div id="card-area" class="card-container hidden">
+                <div class="card" id="card" onclick="flipCard()">
+                    <div class="card-face">
+                        <span class="tag" id="card-tag">分类</span>
+                        <div id="question-text"></div>
+                    </div>
+                    <div class="card-face card-back">
+                        <div id="answer-text"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="actions-area" class="actions hidden">
+                <button class="btn btn-bad" onclick="rateCard(1)">生 (Forgot)</button>
+                <button class="btn btn-ok" onclick="rateCard(2)">熟 (Good)</button>
+                <button class="btn btn-good" onclick="rateCard(3)">掌握 (Easy)</button>
+            </div>
+
+            <div id="empty-state" class="hidden">
+                <h2>🎉 今日任务已全部完成！</h2>
+                <p>去休息一下，或者等明天再来吧。</p>
+            </div>
+        </div>
+
+        <!-- 统计页面 -->
+        <div id="stats-page">
+            <h2>学习进度</h2>
+            <div id="stats-data" style="margin-top: 20px; font-size: 18px; line-height: 2;">
+                <!-- 数据会显示在这里 -->
+            </div>
+            <button onclick="resetData()" style="margin-top: 40px; padding: 10px 20px; background: #ff4d4f; color: white; border: none; border-radius: 8px;">重置所有学习进度</button>
+        </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="nav">
+        <div class="nav-item active" id="nav-study" onclick="switchPage('study')">背记</div>
+        <div class="nav-item" id="nav-stats" onclick="switchPage('stats')">统计</div>
+    </div>
+
+    <script>
+        // ================== 1. 核心词库数据 ==================
+        const rawData = [
+            // 翻译句式
+            { cat: "句式", q: "随着...的快速发展", a: "With the rapid development of..." },
+            { cat: "句式", q: "位于...（作状语）", a: "Located in..., 主语 + 谓语..." },
+            { cat: "句式", q: "被誉为...", a: "is known as / is regarded as / is hailed as..." },
+            { cat: "句式", q: "是...之一", a: "one of the + 最高级 + 复数名词" },
+            { cat: "句式", q: "标志着...", a: "marks / signifies / demonstrates that..." },
+            { cat: "语法", q: "主谓一致（one of）", a: "one of 后必须接复数名词，谓语动词用单数" },
+            { cat: "语法", q: "时态（近年来）", a: "In recent years 常与现在完成时连用" },
+            { cat: "语法", q: "非谓语（句首分词）", a: "句首分词逻辑主语必须与主句主语一致" },
+            { cat: "话题词", q: "传统文化", a: "traditional culture / cultural heritage" },
+            { cat: "话题词", q: "科技成就", a: "scientific and technological achievements" },
+            { cat: "话题词", q: "经济发展", a: "economic development / economic growth" },
+            { cat: "话题词", q: "社会民生", a: "people's livelihood / social well-being" },
+            { cat: "话题词", q: "伟大工程", a: "major project / mega-project" },
+            { cat: "搭配", q: "发挥重要作用", a: "play an important role in..." },
+            { cat: "搭配", q: "做出重大贡献", a: "make significant contributions to..." },
+            { cat: "搭配", q: "重视/强调", a: "attach great importance to..." },
+            // 写作
+            { cat: "承接句", q: "现象类：这一趋势绝非偶然", a: "This trend is by no means accidental, and it deserves a closer look." },
+            { cat: "承接句", q: "原因类：这一现象背后是多重因素", a: "Behind this phenomenon lie a host of intertwined factors." },
+            { cat: "承接句", q: "重要性类：其意义再怎么强调也不为过", a: "The significance of this cannot be overstated." },
+            { cat: "承接句", q: "名言类：这话看似平常却意义深远", a: "Admittedly, this sounds like a commonplace, yet its implications are far-reaching." },
+            { cat: "结尾句", q: "总结：综合上述，可以得出结论", a: "Taking all these factors into consideration, we may safely draw the conclusion that..." },
+            { cat: "结尾句", q: "呼吁：我们该采取有效措施了", a: "It is high time that we took effective measures to address the problem." },
+            { cat: "结尾句", q: "倒装：只有这样我们才能...", a: "Only by working together can we hope to make a real difference." },
+            { cat: "结尾句", q: "展望：前景令人鼓舞", a: "If we act now, the prospects are genuinely encouraging." },
+            { cat: "替换词", q: "important (重要的)", a: "crucial / vital / indispensable / pivotal" },
+            { cat: "替换词", q: "think (认为)", a: "maintain / assert / contend / hold the view that" },
+            { cat: "替换词", q: "show (表明)", a: "demonstrate / reveal / indicate / illustrate" },
+            { cat: "替换词", q: "many (许多)", a: "numerous / a multitude of / an array of" },
+            { cat: "替换词", q: "help (帮助)", a: "facilitate / assist / be conducive to" },
+            { cat: "替换词", q: "get (获得)", a: "obtain / acquire / attain / secure" }
+        ];
+
+        // ================== 2. 本地存储与算法 ==================
+        let db = {};
+        
+        // 初始化本地数据
+        function initDB() {
+            const saved = localStorage.getItem('cet6_db');
+            if (saved) {
+                db = JSON.parse(saved);
+            } else {
+                // 首次运行，初始化所有卡片的记忆数据
+                rawData.forEach((item, index) => {
+                    db[index] = { status: 0, interval: 0, ease: 2.5, reps: 0, next_review: 0 };
+                });
+                saveDB();
+            }
+        }
+
+        function saveDB() {
+            localStorage.setItem('cet6_db', JSON.stringify(db));
+        }
+
+        // 简化版记忆算法
+        function calculateNextReview(index, quality) {
+            let card = db[index];
+            if (quality === 1) { // 生
+                card.interval = 1;
+                card.ease = Math.max(1.3, card.ease - 0.2);
+                card.reps = 0;
+                card.status = 1;
+            } else if (quality === 2) { // 熟
+                card.reps += 1;
+                if (card.reps === 1) card.interval = 1;
+                else if (card.reps === 2) card.interval = 3;
+                else card.interval = Math.round(card.interval * card.ease);
+                card.status = 2;
+            } else { // 掌握
+                card.reps += 1;
+                if (card.reps === 1) card.interval = 2;
+                else if (card.reps === 2) card.interval = 5;
+                else card.interval = Math.round(card.interval * card.ease * 1.2);
+                card.ease = Math.min(3.0, card.ease + 0.1);
+                card.status = 3;
+            }
+            // 计算下次复习时间 (当前时间 + 间隔天数)
+            const msInDay = 24 * 60 * 60 * 1000;
+            card.next_review = Date.now() + card.interval * msInDay;
+            saveDB();
+        }
+
+        // ================== 3. 页面逻辑 ==================
+        let tasks = [];
+        let currentIndex = 0;
+        let isFlipped = false;
+
+        function loadTasks() {
+            initDB();
+            const now = Date.now();
+            let newCards = [];
+            let reviewCards = [];
+
+            // 筛选新词和到期旧词
+            rawData.forEach((item, index) => {
+                const meta = db[index];
+                if (meta.status === 0) {
+                    newCards.push({ ...item, id: index });
+                } else if (meta.next_review <= now) {
+                    reviewCards.push({ ...item, id: index });
+                }
+            });
+
+            // 每天最多学 20 个新词，复习 20 个
+            newCards = newCards.sort(() => Math.random() - 0.5).slice(0, 20);
+            reviewCards = reviewCards.sort(() => Math.random() - 0.5).slice(0, 20);
+            
+            tasks = [...newCards, ...reviewCards];
+            tasks.sort(() => Math.random() - 0.5); // 全部打乱
+
+            // 随机中英方向
+            tasks.forEach(task => {
+                if (Math.random() > 0.5) {
+                    task.display_q = task.q;
+                    task.display_a = task.a;
+                } else {
+                    task.display_q = task.a;
+                    task.display_a = task.q;
+                }
+            });
+
+            if (tasks.length > 0) {
+                currentIndex = 0;
+                showCard();
+            } else {
+                document.getElementById('card-area').classList.add('hidden');
+                document.getElementById('actions-area').classList.add('hidden');
+                document.getElementById('empty-state').classList.remove('hidden');
+                document.getElementById('progress-text').innerText = "今日无任务";
+            }
+        }
+
+        function showCard() {
+            const card = tasks[currentIndex];
+            document.getElementById('progress-text').innerText = `进度: ${currentIndex + 1} / ${tasks.length}`;
+            document.getElementById('card-tag').innerText = card.cat;
+            document.getElementById('question-text').innerText = card.display_q;
+            document.getElementById('answer-text').innerText = card.display_a;
+            
+            document.getElementById('card').classList.remove('is-flipped');
+            isFlipped = false;
+            document.getElementById('actions-area').classList.add('hidden');
+            document.getElementById('card-area').classList.remove('hidden');
+            document.getElementById('empty-state').classList.add('hidden');
+        }
+
+        function flipCard() {
+            document.getElementById('card').classList.toggle('is-flipped');
+            if (!isFlipped) {
+                document.getElementById('actions-area').classList.remove('hidden');
+                isFlipped = true;
+            }
+        }
+
+        function rateCard(quality) {
+            const card = tasks[currentIndex];
+            calculateNextReview(card.id, quality);
+            
+            currentIndex++;
+            if (currentIndex >= tasks.length) {
+                document.getElementById('card-area').classList.add('hidden');
+                document.getElementById('actions-area').classList.add('hidden');
+                document.getElementById('empty-state').classList.remove('hidden');
+                document.getElementById('progress-text').innerText = "今日任务完成";
+            } else {
+                showCard();
+            }
+        }
+
+        function switchPage(page) {
+            document.getElementById('nav-study').classList.remove('active');
+            document.getElementById('nav-stats').classList.remove('active');
+            
+            if (page === 'study') {
+                document.getElementById('nav-study').classList.add('active');
+                document.getElementById('study-page').style.display = 'flex';
+                document.getElementById('stats-page').style.display = 'none';
+            } else {
+                document.getElementById('nav-stats').classList.add('active');
+                document.getElementById('study-page').style.display = 'none';
+                document.getElementById('stats-page').style.display = 'block';
+                renderStats();
+            }
+        }
+
+        function renderStats() {
+            let newC = 0, badC = 0, okC = 0, goodC = 0;
+            for (let key in db) {
+                if (db[key].status === 0) newC++;
+                else if (db[key].status === 1) badC++;
+                else if (db[key].status === 2) okC++;
+                else goodC++;
+            }
+            const total = newC + badC + okC + goodC;
+            document.getElementById('stats-data').innerHTML = `
+                <p>📚 总卡片数：<b>${total}</b> 张</p>
+                <p style="color:#d9d9d9">⚪ 未学习：<b>${newC}</b> 张</p>
+                <p style="color:#ff4d4f">🔴 需强化：<b>${badC}</b> 张</p>
+                <p style="color:#faad14">🟡 复习中：<b>${okC}</b> 张</p>
+                <p style="color:#52c41a">🟢 已掌握：<b>${goodC}</b> 张</p>
+            `;
+        }
+
+        function resetData() {
+            if(confirm("确定要清空所有记忆进度，重新开始吗？")) {
+                localStorage.removeItem('cet6_db');
+                location.reload();
+            }
+        }
+
+        // 启动
+        loadTasks();
+    </script>
+</body>
+</html>
