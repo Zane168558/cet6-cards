@@ -3,53 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>六级语料库</title>
+    <title>六级语料库 · 50天冲刺</title>
     <style>
         body { font-family: -apple-system, sans-serif; background: #f4f5f7; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
         /* 顶部导航与筛选 */
         .header { background: white; padding: 15px 15px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); z-index: 10; }
         .title-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .title-bar h2 { margin: 0; font-size: 20px; color: #333; }
+        .title-left { display: flex; align-items: center; gap: 8px; }
+        .title-left h2 { margin: 0; font-size: 20px; color: #333; }
+        .streak-badge { background: #fff1f0; color: #cf1322; font-size: 12px; padding: 2px 8px; border-radius: 10px; font-weight: bold; border: 1px solid #ffa39e; display: none; }
         
         /* 陪伴小豆子 */
-        .companion-area { display: flex; align-items: center; }
-        .bubble { background: #e6f7ff; color: #0050b3; border-radius: 10px; padding: 5px 10px; font-size: 12px; margin-right: 10px; position: relative; transition: all 0.3s; max-width: 180px; text-align: right; line-height: 1.4; }
-        .pet { width: 35px; height: 35px; background: #ffb347; border-radius: 50%; position: relative; animation: float 2s infinite; box-shadow: inset -3px -3px 0 rgba(0,0,0,0.1); flex-shrink: 0; }
+        .companion-area { display: flex; align-items: center; cursor: pointer; }
+        .bubble { background: #e6f7ff; color: #0050b3; border-radius: 10px; padding: 6px 12px; font-size: 13px; margin-right: 10px; position: relative; transition: all 0.3s; max-width: 200px; text-align: right; line-height: 1.4; box-shadow: 0 2px 6px rgba(24,144,255,0.1); }
+        .pet { width: 38px; height: 38px; background: #ffb347; border-radius: 50%; position: relative; animation: float 2s infinite; box-shadow: inset -3px -3px 0 rgba(0,0,0,0.1); flex-shrink: 0; }
         .pet::before, .pet::after { content: ''; position: absolute; width: 4px; height: 6px; background: #333; border-radius: 50%; top: 12px; }
         .pet::before { left: 9px; } .pet::after { right: 9px; }
-        .pet-mouth { position: absolute; width: 8px; height: 4px; border-bottom: 2px solid #333; border-radius: 0 0 10px 10px; bottom: 8px; left: 13px; }
+        .pet-mouth { position: absolute; width: 8px; height: 4px; border-bottom: 2px solid #333; border-radius: 0 0 10px 10px; bottom: 8px; left: 15px; }
         
-        /* 签到时的跳跃动画 */
+        /* 小豆子动画 */
         .pet.jump { animation: jumpAnim 0.5s ease-out; }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
         @keyframes jumpAnim { 0% { transform: translateY(0); } 30% { transform: translateY(-15px) scale(1.1); } 50% { transform: translateY(0) scale(0.9); } 80% { transform: translateY(-5px); } 100% { transform: translateY(0); } }
 
         /* 标签栏 */
-        .tabs { display: flex; overflow-x: auto; padding-bottom: 10px; gap: 10px; scrollbar-width: none; }
+        .tabs { display: flex; overflow-x: auto; padding-bottom: 10px; gap: 8px; scrollbar-width: none; }
         .tabs::-webkit-scrollbar { display: none; }
         .tab { white-space: nowrap; padding: 6px 12px; border-radius: 20px; background: #f0f2f5; color: #666; font-size: 14px; cursor: pointer; transition: 0.2s; }
-        .tab.active { background: #1890ff; color: white; font-weight: bold; }
+        .tab.active { background: #1890ff; color: white; font-weight: bold; box-shadow: 0 2px 6px rgba(24,144,255,0.3); }
 
         /* 卡片流区域 */
         .feed { flex-grow: 1; overflow-y: auto; padding: 15px; padding-bottom: 80px; box-sizing: border-box; }
-        
         .card { background: white; border-radius: 16px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); position: relative; transition: transform 0.2s; cursor: pointer; }
         .card:active { transform: scale(0.98); }
-        
         .card-header { display: flex; justify-content: space-between; margin-bottom: 12px; }
         .tag { font-size: 12px; background: #f0f2f5; color: #666; padding: 2px 8px; border-radius: 8px; }
-        .star-btn { font-size: 20px; cursor: pointer; color: #ccc; transition: 0.3s; line-height: 1; }
+        .star-btn { font-size: 22px; cursor: pointer; color: #ccc; transition: 0.3s; line-height: 1; padding: 0 5px;}
         .star-btn.starred { color: #faad14; transform: scale(1.1); }
-        
         .question { font-size: 18px; font-weight: 500; color: #333; line-height: 1.5; margin-bottom: 15px; }
-        
         .answer-area { border-top: 1px dashed #eee; padding-top: 15px; position: relative; }
         .answer-text { font-size: 16px; color: #1890ff; line-height: 1.5; transition: filter 0.3s; }
-        
-        /* 模糊遮罩效果 */
         .answer-text.hidden-ans { filter: blur(6px); user-select: none; opacity: 0.7; }
-        .click-hint { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; color: #999; pointer-events: none; display: none; }
+        .click-hint { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 13px; color: #999; pointer-events: none; display: none; }
         .hidden-ans + .click-hint { display: block; }
 
         /* 底部导航 */
@@ -60,7 +56,11 @@
         /* 导入弹窗 */
         #import-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; justify-content: center; align-items: center; }
         .modal-content { background: white; width: 90%; max-width: 400px; padding: 20px; border-radius: 16px; }
-        textarea { width: 100%; height: 150px; margin: 10px 0; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; font-family: monospace; }
+        textarea { width: 100%; height: 200px; margin: 10px 0; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; font-family: monospace; font-size: 13px;}
+
+        /* 打卡成功Toast */
+        #checkin-toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px); background: #52c41a; color: white; padding: 10px 20px; border-radius: 20px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 12px rgba(82,196,26,0.3); opacity: 0; transition: all 0.3s; z-index: 200; pointer-events: none; }
+        #checkin-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
     </style>
 </head>
 <body>
@@ -68,8 +68,11 @@
     <!-- 顶部 -->
     <div class="header">
         <div class="title-bar">
-            <h2 id="page-title">语料速查</h2>
-            <div class="companion-area">
+            <div class="title-left">
+                <h2>六级50天冲刺</h2>
+                <div class="streak-badge" id="streak-badge">🔥 连签 1 天</div>
+            </div>
+            <div class="companion-area" onclick="petClick()">
                 <div class="bubble" id="pet-speech">加载中...</div>
                 <div class="pet" id="pet-mascot"><div class="pet-mouth"></div></div>
             </div>
@@ -77,17 +80,12 @@
         <!-- 分类标签 -->
         <div class="tabs" id="tabs-container">
             <div class="tab active" onclick="filterCategory('全部', this)">全部</div>
-            <div class="tab" onclick="filterCategory('句式', this)">翻译句式</div>
-            <div class="tab" onclick="filterCategory('写作', this)">写作框架</div>
-            <div class="tab" onclick="filterCategory('文化', this)">文化概况</div>
-            <div class="tab" onclick="filterCategory('⭐ 我的宝库', this)">⭐ 我的宝库</div>
+            <div class="tab" onclick="filterCategory('宝库', this)">⭐ 我的宝库</div>
         </div>
     </div>
 
     <!-- 卡片流 -->
-    <div class="feed" id="feed-container">
-        <!-- 动态插入卡片 -->
-    </div>
+    <div class="feed" id="feed-container"></div>
 
     <!-- 底部导航 -->
     <div class="nav">
@@ -98,77 +96,170 @@
     <!-- 导入弹窗 -->
     <div id="import-modal">
         <div class="modal-content">
-            <h3>批量导入</h3>
+            <h3>批量导入 (支持D1-D50)</h3>
             <p style="font-size:12px; color:#666;">格式：<b>分类|中文题目|英文答案</b> （每行一条）</p>
-            <textarea id="import-text" placeholder="翻译|随着经济发展|With economic development...&#10;文化|旗袍|qipao"></textarea>
+            <textarea id="import-text" placeholder="D1-翻译句式|随着...|With...&#10;D2-文化名词|春节|the Spring Festival"></textarea>
             <div style="display:flex; gap:10px;">
-                <button onclick="closeImport()" style="flex:1; padding:10px; border:none; background:#eee; border-radius:8px;">取消</button>
-                <button onclick="doImport()" style="flex:1; padding:10px; border:none; background:#1890ff; color:white; border-radius:8px;">导入</button>
+                <button onclick="closeImport()" style="flex:1; padding:12px; border:none; background:#eee; border-radius:8px; font-size:16px;">取消</button>
+                <button onclick="doImport()" style="flex:1; padding:12px; border:none; background:#1890ff; color:white; border-radius:8px; font-size:16px;">一键导入</button>
             </div>
         </div>
     </div>
 
+    <!-- 打卡提示 -->
+    <div id="checkin-toast">✅ 今日打卡成功！</div>
+
     <script>
-        // 初始数据
         const initialData = [
-            { cat: "句式", q: "随着...的快速发展", a: "With the rapid development of..." },
-            { cat: "句式", q: "位于...（作状语）", a: "Located in..., 主语 + 谓语..." },
-            { cat: "句式", q: "被誉为...", a: "is known as / is regarded as / is hailed as..." },
-            { cat: "句式", q: "标志着...", a: "marks / signifies / demonstrates that..." },
-            { cat: "写作", q: "现象类：这一趋势绝非偶然", a: "This trend is by no means accidental, and it deserves a closer look." },
-            { cat: "写作", q: "总结：综合上述，可以得出结论", a: "Taking all these factors into consideration, we may safely draw the conclusion that..." },
-            { cat: "写作", q: "倒装：只有这样我们才能...", a: "Only by working together can we hope to make a real difference." },
-            { cat: "写作", q: "替换词：important (重要的)", a: "crucial / vital / indispensable / pivotal" },
-            { cat: "文化", q: "传统文化", a: "traditional culture / cultural heritage" },
-            { cat: "文化", q: "春节", a: "the Spring Festival" },
-            { cat: "文化", q: "旗袍", a: "qipao / cheongsam" }
+            { cat: "D1-翻译句式", q: "随着...的快速发展", a: "With the rapid development of..." },
+            { cat: "D1-写作承接", q: "这一趋势绝非偶然", a: "This trend is by no means accidental, and it deserves a closer look." },
+            { cat: "D2-文化名词", q: "春节", a: "the Spring Festival" }
         ];
 
-        let allCards = JSON.parse(localStorage.getItem('cet6_v3_cards')) || initialData;
-        let stars = JSON.parse(localStorage.getItem('cet6_v3_stars')) || [];
+        let allCards = JSON.parse(localStorage.getItem('cet6_v4_cards')) || initialData;
+        let stars = JSON.parse(localStorage.getItem('cet6_v4_stars')) || [];
         let currentCategory = '全部';
+        let daysLeft = 0;
 
-        // ================= 签到互动逻辑 =================
-        function checkDailyCheckIn() {
-            // 设定考试日期：2026年12月19日（可根据情况修改）
-            const examDate = new Date('2026-12-19T00:00:00');
+        // ================= 时间、连续打卡与互动逻辑 =================
+        function initExamTime() {
+            const examDate = new Date('2026-12-19T00:00:00'); // 考试日
             const today = new Date();
             
-            // 计算天数差
+            // 计算距离天数
             const msPerDay = 24 * 60 * 60 * 1000;
-            const daysLeft = Math.ceil((examDate - today) / msPerDay);
+            daysLeft = Math.ceil((examDate - today) / msPerDay);
+            if (daysLeft < 0) daysLeft = 0;
 
-            // 获取今天的日期字符串 YYYY-MM-DD
+            // 日期字符串处理
             const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
-            const lastCheckin = localStorage.getItem('cet6_last_checkin');
+            
+            // 计算昨天的日期字符串
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.getFullYear() + '-' + String(yesterday.getMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getDate()).padStart(2, '0');
 
+            let lastCheckin = localStorage.getItem('cet6_last_checkin');
+            let streak = parseInt(localStorage.getItem('cet6_streak')) || 0;
+            
             const bubble = document.getElementById('pet-speech');
-            const pet = document.getElementById('pet-mascot');
+            const badge = document.getElementById('streak-badge');
 
             if (lastCheckin !== todayStr) {
-                // 今天第一次打开，触发打卡
+                // 今天还没打卡
+                if (lastCheckin === yesterdayStr) {
+                    // 昨天打了，连签+1
+                    streak++;
+                } else if (lastCheckin) {
+                    // 断签了，重新计算
+                    streak = 1;
+                } else {
+                    // 第一次用
+                    streak = 1;
+                }
+
+                // 保存数据
                 localStorage.setItem('cet6_last_checkin', todayStr);
-                bubble.innerText = `📅 打卡成功！距离考试还有 ${daysLeft} 天，今天也要加油鸭！`;
-                pet.classList.add('jump'); // 播放跳跃动画
-                // 动画结束后移除类，以便下次触发
-                setTimeout(() => pet.classList.remove('jump'), 600);
+                localStorage.setItem('cet6_streak', streak);
+                
+                // 视觉反馈
+                bubble.innerText = `📅 打卡成功！已连签 ${streak} 天\n距考试还有 ${daysLeft} 天，冲鸭！`;
+                triggerPetJump();
+                showToast(`✅ 今日打卡成功，已连签 ${streak} 天！`);
             } else {
-                // 今天已经打卡过了
-                bubble.innerText = `继续刷语料吧！距考试 ${daysLeft} 天~`;
+                // 今天已经打过卡了
+                bubble.innerText = `继续刷语料吧！距考试还有 ${daysLeft} 天~`;
+            }
+
+            // 更新徽章
+            if (streak > 0) {
+                badge.style.display = 'inline-block';
+                badge.innerText = `🔥 连签 ${streak} 天`;
             }
         }
-        // ===============================================
 
-        // 渲染卡片
+        function triggerPetJump() {
+            const pet = document.getElementById('pet-mascot');
+            pet.classList.remove('jump');
+            void pet.offsetWidth; // 强制重绘
+            pet.classList.add('jump');
+        }
+
+        function petClick() {
+            triggerPetJump();
+            const phrases = [
+                "别发呆啦，滑卡片！", 
+                "遇到不会的赶紧点星星~", 
+                "小豆子陪你背到580分！",
+                "注意主谓一致和时态哦！",
+                "今天的目标完成了吗？"
+            ];
+            document.getElementById('pet-speech').innerText = phrases[Math.floor(Math.random() * phrases.length)];
+            
+            // 3秒后恢复倒计时
+            setTimeout(() => {
+                document.getElementById('pet-speech').innerText = `距考试 ${daysLeft} 天`;
+            }, 3000);
+        }
+
+        function showToast(text) {
+            const toast = document.getElementById('checkin-toast');
+            toast.innerText = text;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        // ==================================================
+
+        // 渲染顶部标签
+        function renderTabs() {
+            const container = document.getElementById('tabs-container');
+            container.innerHTML = `
+                <div class="tab ${currentCategory === '全部' ? 'active' : ''}" onclick="filterCategory('全部', this)">全部</div>
+                <div class="tab ${currentCategory === '宝库' ? 'active' : ''}" onclick="filterCategory('宝库', this)">⭐ 我的宝库</div>
+            `;
+
+            const daySet = new Set();
+            const catSet = new Set();
+
+            allCards.forEach(c => {
+                const dayMatch = c.cat.match(/^(D\d+)/i);
+                if (dayMatch) daySet.add(dayMatch[1].toUpperCase()); 
+                
+                const pureCat = c.cat.replace(/^D\d+-?/i, '');
+                if(pureCat) catSet.add(pureCat);
+            });
+
+            const sortedDays = Array.from(daySet).sort((a, b) => parseInt(a.replace('D', '')) - parseInt(b.replace('D', '')));
+            
+            sortedDays.forEach(day => {
+                const tab = document.createElement('div');
+                tab.className = `tab ${currentCategory === day ? 'active' : ''}`;
+                tab.innerText = day;
+                tab.onclick = function() { filterCategory(day, this); };
+                container.appendChild(tab);
+            });
+
+            Array.from(catSet).forEach(cat => {
+                const tab = document.createElement('div');
+                tab.className = `tab ${currentCategory === cat ? 'active' : ''}`;
+                tab.innerText = cat;
+                tab.onclick = function() { filterCategory(cat, this); };
+                container.appendChild(tab);
+            });
+        }
+
+        // 渲染卡片流
         function renderFeed() {
             const container = document.getElementById('feed-container');
             container.innerHTML = '';
             
             let filtered = allCards;
-            if (currentCategory === '⭐ 我的宝库') {
+            if (currentCategory === '宝库') {
                 filtered = allCards.filter(c => stars.includes(c.q));
             } else if (currentCategory !== '全部') {
-                filtered = allCards.filter(c => c.cat === currentCategory);
+                filtered = allCards.filter(c => c.cat.includes(currentCategory));
             }
 
             if (filtered.length === 0) {
@@ -183,7 +274,7 @@
                 div.innerHTML = `
                     <div class="card-header">
                         <span class="tag">${card.cat}</span>
-                        <span class="star-btn ${isStarred}" onclick="toggleStar('${card.q.replace(/'/g, "\\'")}', this)">★</span>
+                        <span class="star-btn ${isStarred}" onclick="toggleStar(event, '${card.q.replace(/'/g, "\\'")}', this)">★</span>
                     </div>
                     <div class="question">${card.q}</div>
                     <div class="answer-area" onclick="revealAnswer(this)">
@@ -195,19 +286,17 @@
             });
         }
 
-        // 点击显示答案
         function revealAnswer(el) {
             const textEl = el.querySelector('.answer-text');
             if (textEl.classList.contains('hidden-ans')) {
                 textEl.classList.remove('hidden-ans');
-                updatePet("原来是这样！");
             } else {
                 textEl.classList.add('hidden-ans');
             }
         }
 
-        // 星标切换
-        function toggleStar(q, el) {
+        function toggleStar(event, q, el) {
+            event.stopPropagation(); 
             if (stars.includes(q)) {
                 stars = stars.filter(item => item !== q);
                 el.classList.remove('starred');
@@ -215,21 +304,19 @@
             } else {
                 stars.push(q);
                 el.classList.add('starred');
-                updatePet("好记性不如烂笔头，收藏！");
+                updatePet("收藏成功！继续加油！");
             }
-            localStorage.setItem('cet6_v3_stars', JSON.stringify(stars));
+            localStorage.setItem('cet6_v4_stars', JSON.stringify(stars));
         }
 
-        // 切换标签
         function filterCategory(cat, tabEl) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            tabEl.classList.add('active');
+            if(tabEl) tabEl.classList.add('active');
             currentCategory = cat;
             renderFeed();
             document.getElementById('feed-container').scrollTop = 0;
         }
 
-        // 页面切换
         function switchMainView(view) {
             if (view === 'import') {
                 document.getElementById('import-modal').style.display = 'flex';
@@ -245,7 +332,6 @@
             document.getElementById('nav-import').classList.remove('active');
         }
 
-        // 执行导入
         function doImport() {
             const text = document.getElementById('import-text').value.trim();
             if(!text) return alert("请输入内容");
@@ -258,7 +344,7 @@
                     const cat = parts[0].trim();
                     const q = parts[1].trim();
                     const a = parts.slice(2).join('|').trim();
-                    if(!allCards.some(c => c.q === q)) {
+                    if(!allCards.some(c => c.q === q && c.cat === cat)) {
                         allCards.push({cat, q, a});
                         count++;
                     }
@@ -266,25 +352,28 @@
             });
 
             if(count > 0) {
-                localStorage.setItem('cet6_v3_cards', JSON.stringify(allCards));
-                alert(`成功导入 ${count} 条`);
+                localStorage.setItem('cet6_v4_cards', JSON.stringify(allCards));
+                alert(`成功导入 ${count} 张卡片！去顶部选日期开刷吧！`);
                 closeImport();
+                renderTabs(); 
                 renderFeed();
                 updatePet("资料更新啦！");
             } else {
-                alert("没有新增（格式错/全部重复）");
+                alert("没有新增数据（可能是因为内容完全重复）");
             }
         }
 
-        // 宠物日常对话
-        const petPhrases = ["点点卡片看答案~", "遇到好句子就点星号！", "随时去宝库复习哦", "这个句式很经典的！", "慢慢滑，不着急~"];
         function updatePet(txt) {
-            const bubble = document.getElementById('pet-speech');
-            bubble.innerText = txt || petPhrases[Math.floor(Math.random() * petPhrases.length)];
+            triggerPetJump();
+            document.getElementById('pet-speech').innerText = txt;
+            setTimeout(() => {
+                document.getElementById('pet-speech').innerText = `距考试 ${daysLeft} 天`;
+            }, 3000);
         }
 
-        // 初始化
-        checkDailyCheckIn(); // 先检查打卡
+        // 初始化执行
+        initExamTime();
+        renderTabs();
         renderFeed();
     </script>
 </body>
