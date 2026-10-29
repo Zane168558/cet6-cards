@@ -3,370 +3,289 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>六级背记</title>
+    <title>六级语料库</title>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; padding: 20px 10px; display: flex; flex-direction: column; align-items: center; height: 100vh; box-sizing: border-box; }
-        .container { width: 100%; max-width: 500px; display: flex; flex-direction: column; height: 100%; }
+        body { font-family: -apple-system, sans-serif; background: #f4f5f7; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        /* 卡片容器 */
-        .card-container { perspective: 1000px; width: 100%; height: 350px; margin-bottom: 20px; flex-shrink: 0; }
-        .card { width: 100%; height: 100%; position: relative; transition: transform 0.6s; transform-style: preserve-3d; cursor: pointer; }
-        .card.is-flipped { transform: rotateY(180deg); }
+        /* 顶部导航与筛选 */
+        .header { background: white; padding: 15px 15px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); z-index: 10; }
+        .title-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .title-bar h2 { margin: 0; font-size: 20px; color: #333; }
         
-        /* 卡片正反面 */
-        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; text-align: center; font-size: 22px; font-weight: 500; overflow-y: auto;}
-        .card-back { transform: rotateY(180deg); background: #e6f7ff; color: #0050b3; }
-        .tag { position: absolute; top: 10px; left: 10px; font-size: 12px; background: #d9d9d9; padding: 2px 8px; border-radius: 10px; color: #666; }
+        /* 陪伴小豆子 */
+        .companion-area { display: flex; align-items: center; }
+        .bubble { background: #e6f7ff; color: #0050b3; border-radius: 10px; padding: 5px 10px; font-size: 12px; margin-right: 10px; position: relative; transition: all 0.3s; max-width: 180px; text-align: right; line-height: 1.4; }
+        .pet { width: 35px; height: 35px; background: #ffb347; border-radius: 50%; position: relative; animation: float 2s infinite; box-shadow: inset -3px -3px 0 rgba(0,0,0,0.1); flex-shrink: 0; }
+        .pet::before, .pet::after { content: ''; position: absolute; width: 4px; height: 6px; background: #333; border-radius: 50%; top: 12px; }
+        .pet::before { left: 9px; } .pet::after { right: 9px; }
+        .pet-mouth { position: absolute; width: 8px; height: 4px; border-bottom: 2px solid #333; border-radius: 0 0 10px 10px; bottom: 8px; left: 13px; }
         
-        /* 评分按钮 */
-        .actions { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 30px; }
-        .btn { flex: 1; padding: 15px 0; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; }
-        .btn-bad { background: #ff4d4f; }
-        .btn-ok { background: #faad14; }
-        .btn-good { background: #52c41a; }
-        .hidden { display: none !important; }
+        /* 签到时的跳跃动画 */
+        .pet.jump { animation: jumpAnim 0.5s ease-out; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        @keyframes jumpAnim { 0% { transform: translateY(0); } 30% { transform: translateY(-15px) scale(1.1); } 50% { transform: translateY(0) scale(0.9); } 80% { transform: translateY(-5px); } 100% { transform: translateY(0); } }
+
+        /* 标签栏 */
+        .tabs { display: flex; overflow-x: auto; padding-bottom: 10px; gap: 10px; scrollbar-width: none; }
+        .tabs::-webkit-scrollbar { display: none; }
+        .tab { white-space: nowrap; padding: 6px 12px; border-radius: 20px; background: #f0f2f5; color: #666; font-size: 14px; cursor: pointer; transition: 0.2s; }
+        .tab.active { background: #1890ff; color: white; font-weight: bold; }
+
+        /* 卡片流区域 */
+        .feed { flex-grow: 1; overflow-y: auto; padding: 15px; padding-bottom: 80px; box-sizing: border-box; }
+        
+        .card { background: white; border-radius: 16px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); position: relative; transition: transform 0.2s; cursor: pointer; }
+        .card:active { transform: scale(0.98); }
+        
+        .card-header { display: flex; justify-content: space-between; margin-bottom: 12px; }
+        .tag { font-size: 12px; background: #f0f2f5; color: #666; padding: 2px 8px; border-radius: 8px; }
+        .star-btn { font-size: 20px; cursor: pointer; color: #ccc; transition: 0.3s; line-height: 1; }
+        .star-btn.starred { color: #faad14; transform: scale(1.1); }
+        
+        .question { font-size: 18px; font-weight: 500; color: #333; line-height: 1.5; margin-bottom: 15px; }
+        
+        .answer-area { border-top: 1px dashed #eee; padding-top: 15px; position: relative; }
+        .answer-text { font-size: 16px; color: #1890ff; line-height: 1.5; transition: filter 0.3s; }
+        
+        /* 模糊遮罩效果 */
+        .answer-text.hidden-ans { filter: blur(6px); user-select: none; opacity: 0.7; }
+        .click-hint { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; color: #999; pointer-events: none; display: none; }
+        .hidden-ans + .click-hint { display: block; }
 
         /* 底部导航 */
-        .nav { position: fixed; bottom: 0; left: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 100; }
-        .nav-item { font-size: 14px; color: #999; cursor: pointer; padding: 10px; }
-        .nav-item.active { color: #1890ff; font-weight: bold; }
-        
-        /* 统计页 */
-        #stats-page { display: none; text-align: left; flex-grow: 1; padding-top: 20px; overflow-y: auto; padding-bottom: 60px;}
-        .progress-text { margin-bottom: 10px; color: #666; font-size: 14px; text-align: center; }
-        
-        /* 打卡日历样式 */
-        .box-style { background: white; border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .streak-title { font-size: 20px; font-weight: bold; color: #ff4d4f; margin-bottom: 15px; text-align: center; }
-        .week-calendar { display: flex; justify-content: space-between; }
-        .day-item { display: flex; flex-direction: column; align-items: center; }
-        .day-name { font-size: 12px; color: #999; margin-bottom: 5px; }
-        .day-dot { width: 30px; height: 30px; border-radius: 50%; background: #f0f2f5; display: flex; justify-content: center; align-items: center; font-size: 12px; color: #999; }
-        .day-dot.checked { background: #ff4d4f; color: white; font-weight: bold; }
-        .day-dot.today { border: 2px solid #ff4d4f; }
-        
-        /* 输入框样式 */
-        textarea { width: 100%; height: 150px; padding: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; margin-bottom: 10px; font-family: monospace; font-size: 12px;}
-        .import-btn { width: 100%; padding: 12px; background: #1890ff; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+        .nav { position: fixed; bottom: 0; left: 0; width: 100%; background: white; display: flex; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+        .nav-item { flex: 1; text-align: center; padding: 15px 0; font-size: 15px; color: #999; cursor: pointer; font-weight: bold; }
+        .nav-item.active { color: #1890ff; }
+
+        /* 导入弹窗 */
+        #import-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 90%; max-width: 400px; padding: 20px; border-radius: 16px; }
+        textarea { width: 100%; height: 150px; margin: 10px 0; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; font-family: monospace; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- 背记页面 -->
-        <div id="study-page" style="display: flex; flex-direction: column; flex-grow: 1;">
-            <div class="progress-text" id="progress-text">加载中...</div>
-            
-            <div id="card-area" class="card-container hidden">
-                <div class="card" id="card" onclick="flipCard()">
-                    <div class="card-face">
-                        <span class="tag" id="card-tag">分类</span>
-                        <div id="question-text"></div>
-                    </div>
-                    <div class="card-face card-back">
-                        <div id="answer-text"></div>
-                    </div>
-                </div>
-            </div>
 
-            <div id="actions-area" class="actions hidden">
-                <button class="btn btn-bad" onclick="rateCard(1)">生 (Forgot)</button>
-                <button class="btn btn-ok" onclick="rateCard(2)">熟 (Good)</button>
-                <button class="btn btn-good" onclick="rateCard(3)">掌握 (Easy)</button>
-            </div>
-
-            <div id="empty-state" class="hidden" style="text-align: center; margin-top: 50px;">
-                <h2>🎉 今日任务已全部完成！</h2>
-                <p>你已成功打卡，明天继续保持！</p>
+    <!-- 顶部 -->
+    <div class="header">
+        <div class="title-bar">
+            <h2 id="page-title">语料速查</h2>
+            <div class="companion-area">
+                <div class="bubble" id="pet-speech">加载中...</div>
+                <div class="pet" id="pet-mascot"><div class="pet-mouth"></div></div>
             </div>
         </div>
-
-        <!-- 统计页面 -->
-        <div id="stats-page">
-            <h2 style="text-align: center;">学习统计</h2>
-            
-            <div class="box-style">
-                <div class="streak-title" id="streak-text">🔥 连续打卡 0 天</div>
-                <div class="week-calendar" id="week-calendar"></div>
-            </div>
-
-            <div id="stats-data" class="box-style" style="font-size: 16px; line-height: 1.8;"></div>
-            
-            <!-- 新增的导入面板 -->
-            <div class="box-style">
-                <h3 style="margin-top: 0;">➕ 导入新卡片</h3>
-                <p style="font-size: 12px; color: #666;">格式：<b>分类|问题|答案</b> （每行一条）</p>
-                <textarea id="import-text" placeholder="例如：&#10;翻译|随着...的发展|With the development of...&#10;写作|这一趋势绝非偶然|This trend is by no means accidental..."></textarea>
-                <button class="import-btn" onclick="importData()">确认导入</button>
-            </div>
-
-            <button onclick="resetData()" style="width:100%; margin-top: 20px; margin-bottom: 30px; padding: 12px; background: #ff4d4f; color: white; border: none; border-radius: 8px; font-size: 16px;">重置所有学习进度</button>
+        <!-- 分类标签 -->
+        <div class="tabs" id="tabs-container">
+            <div class="tab active" onclick="filterCategory('全部', this)">全部</div>
+            <div class="tab" onclick="filterCategory('句式', this)">翻译句式</div>
+            <div class="tab" onclick="filterCategory('写作', this)">写作框架</div>
+            <div class="tab" onclick="filterCategory('文化', this)">文化概况</div>
+            <div class="tab" onclick="filterCategory('⭐ 我的宝库', this)">⭐ 我的宝库</div>
         </div>
+    </div>
+
+    <!-- 卡片流 -->
+    <div class="feed" id="feed-container">
+        <!-- 动态插入卡片 -->
     </div>
 
     <!-- 底部导航 -->
     <div class="nav">
-        <div class="nav-item active" id="nav-study" onclick="switchPage('study')">背记</div>
-        <div class="nav-item" id="nav-stats" onclick="switchPage('stats')">统计 / 导入</div>
+        <div class="nav-item active" id="nav-browse" onclick="switchMainView('browse')">刷语料</div>
+        <div class="nav-item" id="nav-import" onclick="switchMainView('import')">导入新资料</div>
+    </div>
+
+    <!-- 导入弹窗 -->
+    <div id="import-modal">
+        <div class="modal-content">
+            <h3>批量导入</h3>
+            <p style="font-size:12px; color:#666;">格式：<b>分类|中文题目|英文答案</b> （每行一条）</p>
+            <textarea id="import-text" placeholder="翻译|随着经济发展|With economic development...&#10;文化|旗袍|qipao"></textarea>
+            <div style="display:flex; gap:10px;">
+                <button onclick="closeImport()" style="flex:1; padding:10px; border:none; background:#eee; border-radius:8px;">取消</button>
+                <button onclick="doImport()" style="flex:1; padding:10px; border:none; background:#1890ff; color:white; border-radius:8px;">导入</button>
+            </div>
+        </div>
     </div>
 
     <script>
-        // ================== 1. 核心词库数据 ==================
-        const defaultData = [
+        // 初始数据
+        const initialData = [
             { cat: "句式", q: "随着...的快速发展", a: "With the rapid development of..." },
             { cat: "句式", q: "位于...（作状语）", a: "Located in..., 主语 + 谓语..." },
-            { cat: "句式", q: "被誉为...", a: "is known as / is regarded as / is hailed as..." }
-            // ... 为了代码简短，这里只放了3条。之前的30条数据已经存在你手机里了，所以不会丢！
+            { cat: "句式", q: "被誉为...", a: "is known as / is regarded as / is hailed as..." },
+            { cat: "句式", q: "标志着...", a: "marks / signifies / demonstrates that..." },
+            { cat: "写作", q: "现象类：这一趋势绝非偶然", a: "This trend is by no means accidental, and it deserves a closer look." },
+            { cat: "写作", q: "总结：综合上述，可以得出结论", a: "Taking all these factors into consideration, we may safely draw the conclusion that..." },
+            { cat: "写作", q: "倒装：只有这样我们才能...", a: "Only by working together can we hope to make a real difference." },
+            { cat: "写作", q: "替换词：important (重要的)", a: "crucial / vital / indispensable / pivotal" },
+            { cat: "文化", q: "传统文化", a: "traditional culture / cultural heritage" },
+            { cat: "文化", q: "春节", a: "the Spring Festival" },
+            { cat: "文化", q: "旗袍", a: "qipao / cheongsam" }
         ];
 
-        // ================== 2. 本地存储与算法 ==================
-        let db = {};      // 存记忆数据
-        let allCards = []; // 存所有卡片内容
+        let allCards = JSON.parse(localStorage.getItem('cet6_v3_cards')) || initialData;
+        let stars = JSON.parse(localStorage.getItem('cet6_v3_stars')) || [];
+        let currentCategory = '全部';
 
-        function initDB() {
-            const savedCards = localStorage.getItem('cet6_all_cards');
-            const savedDB = localStorage.getItem('cet6_db');
+        // ================= 签到互动逻辑 =================
+        function checkDailyCheckIn() {
+            // 设定考试日期：2026年12月19日（可根据情况修改）
+            const examDate = new Date('2026-12-19T00:00:00');
+            const today = new Date();
             
-            if (savedCards) {
-                allCards = JSON.parse(savedCards);
-                db = JSON.parse(savedDB);
+            // 计算天数差
+            const msPerDay = 24 * 60 * 60 * 1000;
+            const daysLeft = Math.ceil((examDate - today) / msPerDay);
+
+            // 获取今天的日期字符串 YYYY-MM-DD
+            const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+            const lastCheckin = localStorage.getItem('cet6_last_checkin');
+
+            const bubble = document.getElementById('pet-speech');
+            const pet = document.getElementById('pet-mascot');
+
+            if (lastCheckin !== todayStr) {
+                // 今天第一次打开，触发打卡
+                localStorage.setItem('cet6_last_checkin', todayStr);
+                bubble.innerText = `📅 打卡成功！距离考试还有 ${daysLeft} 天，今天也要加油鸭！`;
+                pet.classList.add('jump'); // 播放跳跃动画
+                // 动画结束后移除类，以便下次触发
+                setTimeout(() => pet.classList.remove('jump'), 600);
             } else {
-                // 首次运行
-                allCards = defaultData;
-                allCards.forEach((item, index) => {
-                    db[index] = { status: 0, interval: 0, ease: 2.5, reps: 0, next_review: 0 };
-                });
-                saveDB();
+                // 今天已经打卡过了
+                bubble.innerText = `继续刷语料吧！距考试 ${daysLeft} 天~`;
+            }
+        }
+        // ===============================================
+
+        // 渲染卡片
+        function renderFeed() {
+            const container = document.getElementById('feed-container');
+            container.innerHTML = '';
+            
+            let filtered = allCards;
+            if (currentCategory === '⭐ 我的宝库') {
+                filtered = allCards.filter(c => stars.includes(c.q));
+            } else if (currentCategory !== '全部') {
+                filtered = allCards.filter(c => c.cat === currentCategory);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div style="text-align:center; color:#999; margin-top:50px;">这里空空如也，快去收集星标吧~</div>';
+                return;
+            }
+
+            filtered.forEach(card => {
+                const isStarred = stars.includes(card.q) ? 'starred' : '';
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.innerHTML = `
+                    <div class="card-header">
+                        <span class="tag">${card.cat}</span>
+                        <span class="star-btn ${isStarred}" onclick="toggleStar('${card.q.replace(/'/g, "\\'")}', this)">★</span>
+                    </div>
+                    <div class="question">${card.q}</div>
+                    <div class="answer-area" onclick="revealAnswer(this)">
+                        <div class="answer-text hidden-ans">${card.a}</div>
+                        <div class="click-hint">轻触显示答案</div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // 点击显示答案
+        function revealAnswer(el) {
+            const textEl = el.querySelector('.answer-text');
+            if (textEl.classList.contains('hidden-ans')) {
+                textEl.classList.remove('hidden-ans');
+                updatePet("原来是这样！");
+            } else {
+                textEl.classList.add('hidden-ans');
             }
         }
 
-        function saveDB() {
-            localStorage.setItem('cet6_all_cards', JSON.stringify(allCards));
-            localStorage.setItem('cet6_db', JSON.stringify(db));
-        }
-
-        function calculateNextReview(index, quality) {
-            let card = db[index];
-            if (quality === 1) {
-                card.interval = 1; card.ease = Math.max(1.3, card.ease - 0.2); card.reps = 0; card.status = 1;
-            } else if (quality === 2) {
-                card.reps += 1;
-                if (card.reps === 1) card.interval = 1; else if (card.reps === 2) card.interval = 3; else card.interval = Math.round(card.interval * card.ease);
-                card.status = 2;
+        // 星标切换
+        function toggleStar(q, el) {
+            if (stars.includes(q)) {
+                stars = stars.filter(item => item !== q);
+                el.classList.remove('starred');
+                updatePet("移出宝库了哦");
             } else {
-                card.reps += 1;
-                if (card.reps === 1) card.interval = 2; else if (card.reps === 2) card.interval = 5; else card.interval = Math.round(card.interval * card.ease * 1.2);
-                card.ease = Math.min(3.0, card.ease + 0.1); card.status = 3;
+                stars.push(q);
+                el.classList.add('starred');
+                updatePet("好记性不如烂笔头，收藏！");
             }
-            card.next_review = Date.now() + card.interval * 24 * 60 * 60 * 1000;
-            saveDB();
+            localStorage.setItem('cet6_v3_stars', JSON.stringify(stars));
         }
 
-        // ================== 3. 导入功能 ==================
-        function importData() {
+        // 切换标签
+        function filterCategory(cat, tabEl) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            tabEl.classList.add('active');
+            currentCategory = cat;
+            renderFeed();
+            document.getElementById('feed-container').scrollTop = 0;
+        }
+
+        // 页面切换
+        function switchMainView(view) {
+            if (view === 'import') {
+                document.getElementById('import-modal').style.display = 'flex';
+            } else {
+                document.getElementById('nav-browse').classList.add('active');
+                document.getElementById('nav-import').classList.remove('active');
+            }
+        }
+
+        function closeImport() {
+            document.getElementById('import-modal').style.display = 'none';
+            document.getElementById('nav-browse').classList.add('active');
+            document.getElementById('nav-import').classList.remove('active');
+        }
+
+        // 执行导入
+        function doImport() {
             const text = document.getElementById('import-text').value.trim();
-            if (!text) return alert("请先粘贴内容！");
-
+            if(!text) return alert("请输入内容");
+            
             const lines = text.split('\n');
-            let addedCount = 0;
-
+            let count = 0;
             lines.forEach(line => {
-                if (!line.trim()) return;
-                // 用 | 分割，限制最多3部分
                 const parts = line.split('|');
-                if (parts.length >= 3) {
+                if(parts.length >= 3) {
                     const cat = parts[0].trim();
                     const q = parts[1].trim();
-                    const a = parts.slice(2).join('|').trim(); // 防止答案里有|
-
-                    // 防止重复添加（根据问题判断）
-                    if (!allCards.some(c => c.q === q)) {
-                        const newIndex = allCards.length;
-                        allCards.push({ cat, q, a });
-                        db[newIndex] = { status: 0, interval: 0, ease: 2.5, reps: 0, next_review: 0 };
-                        addedCount++;
+                    const a = parts.slice(2).join('|').trim();
+                    if(!allCards.some(c => c.q === q)) {
+                        allCards.push({cat, q, a});
+                        count++;
                     }
                 }
             });
 
-            if (addedCount > 0) {
-                saveDB();
-                alert(`成功导入 ${addedCount} 张新卡片！`);
-                document.getElementById('import-text').value = ""; // 清空
-                loadTasks(); // 刷新任务
+            if(count > 0) {
+                localStorage.setItem('cet6_v3_cards', JSON.stringify(allCards));
+                alert(`成功导入 ${count} 条`);
+                closeImport();
+                renderFeed();
+                updatePet("资料更新啦！");
             } else {
-                alert("没有导入新卡片，可能是格式不对或内容已存在。");
+                alert("没有新增（格式错/全部重复）");
             }
         }
 
-        // ================== 4. 打卡功能 ==================
-        function getTodayString() {
-            const d = new Date();
-            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        // 宠物日常对话
+        const petPhrases = ["点点卡片看答案~", "遇到好句子就点星号！", "随时去宝库复习哦", "这个句式很经典的！", "慢慢滑，不着急~"];
+        function updatePet(txt) {
+            const bubble = document.getElementById('pet-speech');
+            bubble.innerText = txt || petPhrases[Math.floor(Math.random() * petPhrases.length)];
         }
 
-        function markTodayCheckIn() {
-            let checkins = JSON.parse(localStorage.getItem('cet6_checkins') || '[]');
-            const today = getTodayString();
-            if (!checkins.includes(today)) {
-                checkins.push(today);
-                localStorage.setItem('cet6_checkins', JSON.stringify(checkins));
-            }
-        }
-
-        function calculateStreak() {
-            let checkins = JSON.parse(localStorage.getItem('cet6_checkins') || '[]');
-            if (checkins.length === 0) return 0;
-            let dates = checkins.map(d => new Date(d).getTime()).sort((a, b) => b - a);
-            let streak = 0, todayMs = new Date(getTodayString()).getTime(), msInDay = 86400000;
-            if (todayMs - dates[0] > msInDay) return 0;
-            let currentCheck = dates[0];
-            for (let i = 0; i < dates.length; i++) {
-                if (currentCheck - dates[i] <= msInDay) {
-                    if (i === 0 || dates[i-1] - dates[i] > msInDay) { streak++; currentCheck = dates[i]; }
-                } else break;
-            }
-            return streak;
-        }
-
-        function renderCalendar() {
-            const checkins = JSON.parse(localStorage.getItem('cet6_checkins') || '[]');
-            document.getElementById('streak-text').innerText = `🔥 连续打卡 ${calculateStreak()} 天`;
-            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-            const today = new Date();
-            let html = '';
-            for (let i = 6; i >= 0; i--) {
-                let d = new Date(today); d.setDate(today.getDate() - i);
-                let dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                let isChecked = checkins.includes(dateStr);
-                let isToday = i === 0;
-                html += `<div class="day-item"><div class="day-name">${weekdays[d.getDay()]}</div><div class="day-dot ${isChecked ? 'checked' : ''} ${isToday ? 'today' : ''}">${d.getDate()}</div></div>`;
-            }
-            document.getElementById('week-calendar').innerHTML = html;
-        }
-
-        // ================== 5. 页面逻辑 ==================
-        let tasks = [];
-        let currentIndex = 0;
-        let isFlipped = false;
-
-        function loadTasks() {
-            initDB();
-            markTodayCheckIn(); 
-
-            const now = Date.now();
-            let newCards = [], reviewCards = [];
-
-            allCards.forEach((item, index) => {
-                const meta = db[index];
-                if (!meta) return; // 防止数据错乱
-                if (meta.status === 0) {
-                    newCards.push({ ...item, id: index });
-                } else if (meta.next_review <= now) {
-                    reviewCards.push({ ...item, id: index });
-                }
-            });
-
-            newCards = newCards.sort(() => Math.random() - 0.5).slice(0, 30); // 每天最多背30个新词
-            reviewCards = reviewCards.sort(() => Math.random() - 0.5).slice(0, 30);
-            
-            tasks = [...newCards, ...reviewCards].sort(() => Math.random() - 0.5);
-
-            tasks.forEach(task => {
-                if (Math.random() > 0.5) {
-                    task.display_q = task.q; task.display_a = task.a;
-                } else {
-                    task.display_q = task.a; task.display_a = task.q;
-                }
-            });
-
-            if (tasks.length > 0) {
-                currentIndex = 0;
-                showCard();
-            } else {
-                document.getElementById('card-area').classList.add('hidden');
-                document.getElementById('actions-area').classList.add('hidden');
-                document.getElementById('empty-state').classList.remove('hidden');
-                document.getElementById('progress-text').innerText = "今日无任务";
-            }
-        }
-
-        function showCard() {
-            const card = tasks[currentIndex];
-            document.getElementById('progress-text').innerText = `进度: ${currentIndex + 1} / ${tasks.length}`;
-            document.getElementById('card-tag').innerText = card.cat;
-            document.getElementById('question-text').innerText = card.display_q;
-            document.getElementById('answer-text').innerText = card.display_a;
-            
-            document.getElementById('card').classList.remove('is-flipped');
-            isFlipped = false;
-            document.getElementById('actions-area').classList.add('hidden');
-            document.getElementById('card-area').classList.remove('hidden');
-            document.getElementById('empty-state').classList.add('hidden');
-        }
-
-        function flipCard() {
-            document.getElementById('card').classList.toggle('is-flipped');
-            if (!isFlipped) {
-                document.getElementById('actions-area').classList.remove('hidden');
-                isFlipped = true;
-            }
-        }
-
-        function rateCard(quality) {
-            calculateNextReview(tasks[currentIndex].id, quality);
-            currentIndex++;
-            if (currentIndex >= tasks.length) {
-                document.getElementById('card-area').classList.add('hidden');
-                document.getElementById('actions-area').classList.add('hidden');
-                document.getElementById('empty-state').classList.remove('hidden');
-                document.getElementById('progress-text').innerText = "今日任务完成";
-            } else {
-                showCard();
-            }
-        }
-
-        function switchPage(page) {
-            document.getElementById('nav-study').classList.remove('active');
-            document.getElementById('nav-stats').classList.remove('active');
-            
-            if (page === 'study') {
-                document.getElementById('nav-study').classList.add('active');
-                document.getElementById('study-page').style.display = 'flex';
-                document.getElementById('stats-page').style.display = 'none';
-            } else {
-                document.getElementById('nav-stats').classList.add('active');
-                document.getElementById('study-page').style.display = 'none';
-                document.getElementById('stats-page').style.display = 'block';
-                renderStats();
-                renderCalendar();
-            }
-        }
-
-        function renderStats() {
-            let newC = 0, badC = 0, okC = 0, goodC = 0;
-            for (let key in db) {
-                if (db[key].status === 0) newC++;
-                else if (db[key].status === 1) badC++;
-                else if (db[key].status === 2) okC++;
-                else goodC++;
-            }
-            document.getElementById('stats-data').innerHTML = `
-                <p>📚 总卡片数：<b>${newC + badC + okC + goodC}</b> 张</p>
-                <p style="color:#d9d9d9">⚪ 未学习：<b>${newC}</b> 张</p>
-                <p style="color:#ff4d4f">🔴 需强化：<b>${badC}</b> 张</p>
-                <p style="color:#faad14">🟡 复习中：<b>${okC}</b> 张</p>
-                <p style="color:#52c41a">🟢 已掌握：<b>${goodC}</b> 张</p>
-            `;
-        }
-
-        function resetData() {
-            if(confirm("确定要清空所有记忆进度和打卡记录，重新开始吗？")) {
-                localStorage.clear();
-                location.reload();
-            }
-        }
-
-        loadTasks();
+        // 初始化
+        checkDailyCheckIn(); // 先检查打卡
+        renderFeed();
     </script>
 </body>
 </html>
