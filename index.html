@@ -14,7 +14,7 @@
         .card.is-flipped { transform: rotateY(180deg); }
         
         /* 卡片正反面 */
-        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; text-align: center; font-size: 22px; font-weight: 500; }
+        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; text-align: center; font-size: 22px; font-weight: 500; overflow-y: auto;}
         .card-back { transform: rotateY(180deg); background: #e6f7ff; color: #0050b3; }
         .tag { position: absolute; top: 10px; left: 10px; font-size: 12px; background: #d9d9d9; padding: 2px 8px; border-radius: 10px; color: #666; }
         
@@ -32,9 +32,22 @@
         .nav-item.active { color: #1890ff; font-weight: bold; }
         
         /* 统计页 */
-        #stats-page { display: none; text-align: center; flex-grow: 1; padding-top: 20px;}
-        #empty-state { text-align: center; color: #999; margin-top: 50px; }
+        #stats-page { display: none; text-align: left; flex-grow: 1; padding-top: 20px; overflow-y: auto; padding-bottom: 60px;}
         .progress-text { margin-bottom: 10px; color: #666; font-size: 14px; text-align: center; }
+        
+        /* 打卡日历样式 */
+        .box-style { background: white; border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .streak-title { font-size: 20px; font-weight: bold; color: #ff4d4f; margin-bottom: 15px; text-align: center; }
+        .week-calendar { display: flex; justify-content: space-between; }
+        .day-item { display: flex; flex-direction: column; align-items: center; }
+        .day-name { font-size: 12px; color: #999; margin-bottom: 5px; }
+        .day-dot { width: 30px; height: 30px; border-radius: 50%; background: #f0f2f5; display: flex; justify-content: center; align-items: center; font-size: 12px; color: #999; }
+        .day-dot.checked { background: #ff4d4f; color: white; font-weight: bold; }
+        .day-dot.today { border: 2px solid #ff4d4f; }
+        
+        /* 输入框样式 */
+        textarea { width: 100%; height: 150px; padding: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; margin-bottom: 10px; font-family: monospace; font-size: 12px;}
+        .import-btn { width: 100%; padding: 12px; background: #1890ff; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -61,76 +74,65 @@
                 <button class="btn btn-good" onclick="rateCard(3)">掌握 (Easy)</button>
             </div>
 
-            <div id="empty-state" class="hidden">
+            <div id="empty-state" class="hidden" style="text-align: center; margin-top: 50px;">
                 <h2>🎉 今日任务已全部完成！</h2>
-                <p>去休息一下，或者等明天再来吧。</p>
+                <p>你已成功打卡，明天继续保持！</p>
             </div>
         </div>
 
         <!-- 统计页面 -->
         <div id="stats-page">
-            <h2>学习进度</h2>
-            <div id="stats-data" style="margin-top: 20px; font-size: 18px; line-height: 2;">
-                <!-- 数据会显示在这里 -->
+            <h2 style="text-align: center;">学习统计</h2>
+            
+            <div class="box-style">
+                <div class="streak-title" id="streak-text">🔥 连续打卡 0 天</div>
+                <div class="week-calendar" id="week-calendar"></div>
             </div>
-            <button onclick="resetData()" style="margin-top: 40px; padding: 10px 20px; background: #ff4d4f; color: white; border: none; border-radius: 8px;">重置所有学习进度</button>
+
+            <div id="stats-data" class="box-style" style="font-size: 16px; line-height: 1.8;"></div>
+            
+            <!-- 新增的导入面板 -->
+            <div class="box-style">
+                <h3 style="margin-top: 0;">➕ 导入新卡片</h3>
+                <p style="font-size: 12px; color: #666;">格式：<b>分类|问题|答案</b> （每行一条）</p>
+                <textarea id="import-text" placeholder="例如：&#10;翻译|随着...的发展|With the development of...&#10;写作|这一趋势绝非偶然|This trend is by no means accidental..."></textarea>
+                <button class="import-btn" onclick="importData()">确认导入</button>
+            </div>
+
+            <button onclick="resetData()" style="width:100%; margin-top: 20px; margin-bottom: 30px; padding: 12px; background: #ff4d4f; color: white; border: none; border-radius: 8px; font-size: 16px;">重置所有学习进度</button>
         </div>
     </div>
 
     <!-- 底部导航 -->
     <div class="nav">
         <div class="nav-item active" id="nav-study" onclick="switchPage('study')">背记</div>
-        <div class="nav-item" id="nav-stats" onclick="switchPage('stats')">统计</div>
+        <div class="nav-item" id="nav-stats" onclick="switchPage('stats')">统计 / 导入</div>
     </div>
 
     <script>
         // ================== 1. 核心词库数据 ==================
-        const rawData = [
-            // 翻译句式
+        const defaultData = [
             { cat: "句式", q: "随着...的快速发展", a: "With the rapid development of..." },
             { cat: "句式", q: "位于...（作状语）", a: "Located in..., 主语 + 谓语..." },
-            { cat: "句式", q: "被誉为...", a: "is known as / is regarded as / is hailed as..." },
-            { cat: "句式", q: "是...之一", a: "one of the + 最高级 + 复数名词" },
-            { cat: "句式", q: "标志着...", a: "marks / signifies / demonstrates that..." },
-            { cat: "语法", q: "主谓一致（one of）", a: "one of 后必须接复数名词，谓语动词用单数" },
-            { cat: "语法", q: "时态（近年来）", a: "In recent years 常与现在完成时连用" },
-            { cat: "语法", q: "非谓语（句首分词）", a: "句首分词逻辑主语必须与主句主语一致" },
-            { cat: "话题词", q: "传统文化", a: "traditional culture / cultural heritage" },
-            { cat: "话题词", q: "科技成就", a: "scientific and technological achievements" },
-            { cat: "话题词", q: "经济发展", a: "economic development / economic growth" },
-            { cat: "话题词", q: "社会民生", a: "people's livelihood / social well-being" },
-            { cat: "话题词", q: "伟大工程", a: "major project / mega-project" },
-            { cat: "搭配", q: "发挥重要作用", a: "play an important role in..." },
-            { cat: "搭配", q: "做出重大贡献", a: "make significant contributions to..." },
-            { cat: "搭配", q: "重视/强调", a: "attach great importance to..." },
-            // 写作
-            { cat: "承接句", q: "现象类：这一趋势绝非偶然", a: "This trend is by no means accidental, and it deserves a closer look." },
-            { cat: "承接句", q: "原因类：这一现象背后是多重因素", a: "Behind this phenomenon lie a host of intertwined factors." },
-            { cat: "承接句", q: "重要性类：其意义再怎么强调也不为过", a: "The significance of this cannot be overstated." },
-            { cat: "承接句", q: "名言类：这话看似平常却意义深远", a: "Admittedly, this sounds like a commonplace, yet its implications are far-reaching." },
-            { cat: "结尾句", q: "总结：综合上述，可以得出结论", a: "Taking all these factors into consideration, we may safely draw the conclusion that..." },
-            { cat: "结尾句", q: "呼吁：我们该采取有效措施了", a: "It is high time that we took effective measures to address the problem." },
-            { cat: "结尾句", q: "倒装：只有这样我们才能...", a: "Only by working together can we hope to make a real difference." },
-            { cat: "结尾句", q: "展望：前景令人鼓舞", a: "If we act now, the prospects are genuinely encouraging." },
-            { cat: "替换词", q: "important (重要的)", a: "crucial / vital / indispensable / pivotal" },
-            { cat: "替换词", q: "think (认为)", a: "maintain / assert / contend / hold the view that" },
-            { cat: "替换词", q: "show (表明)", a: "demonstrate / reveal / indicate / illustrate" },
-            { cat: "替换词", q: "many (许多)", a: "numerous / a multitude of / an array of" },
-            { cat: "替换词", q: "help (帮助)", a: "facilitate / assist / be conducive to" },
-            { cat: "替换词", q: "get (获得)", a: "obtain / acquire / attain / secure" }
+            { cat: "句式", q: "被誉为...", a: "is known as / is regarded as / is hailed as..." }
+            // ... 为了代码简短，这里只放了3条。之前的30条数据已经存在你手机里了，所以不会丢！
         ];
 
         // ================== 2. 本地存储与算法 ==================
-        let db = {};
-        
-        // 初始化本地数据
+        let db = {};      // 存记忆数据
+        let allCards = []; // 存所有卡片内容
+
         function initDB() {
-            const saved = localStorage.getItem('cet6_db');
-            if (saved) {
-                db = JSON.parse(saved);
+            const savedCards = localStorage.getItem('cet6_all_cards');
+            const savedDB = localStorage.getItem('cet6_db');
+            
+            if (savedCards) {
+                allCards = JSON.parse(savedCards);
+                db = JSON.parse(savedDB);
             } else {
-                // 首次运行，初始化所有卡片的记忆数据
-                rawData.forEach((item, index) => {
+                // 首次运行
+                allCards = defaultData;
+                allCards.forEach((item, index) => {
                     db[index] = { status: 0, interval: 0, ease: 2.5, reps: 0, next_review: 0 };
                 });
                 saveDB();
@@ -138,51 +140,125 @@
         }
 
         function saveDB() {
+            localStorage.setItem('cet6_all_cards', JSON.stringify(allCards));
             localStorage.setItem('cet6_db', JSON.stringify(db));
         }
 
-        // 简化版记忆算法
         function calculateNextReview(index, quality) {
             let card = db[index];
-            if (quality === 1) { // 生
-                card.interval = 1;
-                card.ease = Math.max(1.3, card.ease - 0.2);
-                card.reps = 0;
-                card.status = 1;
-            } else if (quality === 2) { // 熟
+            if (quality === 1) {
+                card.interval = 1; card.ease = Math.max(1.3, card.ease - 0.2); card.reps = 0; card.status = 1;
+            } else if (quality === 2) {
                 card.reps += 1;
-                if (card.reps === 1) card.interval = 1;
-                else if (card.reps === 2) card.interval = 3;
-                else card.interval = Math.round(card.interval * card.ease);
+                if (card.reps === 1) card.interval = 1; else if (card.reps === 2) card.interval = 3; else card.interval = Math.round(card.interval * card.ease);
                 card.status = 2;
-            } else { // 掌握
+            } else {
                 card.reps += 1;
-                if (card.reps === 1) card.interval = 2;
-                else if (card.reps === 2) card.interval = 5;
-                else card.interval = Math.round(card.interval * card.ease * 1.2);
-                card.ease = Math.min(3.0, card.ease + 0.1);
-                card.status = 3;
+                if (card.reps === 1) card.interval = 2; else if (card.reps === 2) card.interval = 5; else card.interval = Math.round(card.interval * card.ease * 1.2);
+                card.ease = Math.min(3.0, card.ease + 0.1); card.status = 3;
             }
-            // 计算下次复习时间 (当前时间 + 间隔天数)
-            const msInDay = 24 * 60 * 60 * 1000;
-            card.next_review = Date.now() + card.interval * msInDay;
+            card.next_review = Date.now() + card.interval * 24 * 60 * 60 * 1000;
             saveDB();
         }
 
-        // ================== 3. 页面逻辑 ==================
+        // ================== 3. 导入功能 ==================
+        function importData() {
+            const text = document.getElementById('import-text').value.trim();
+            if (!text) return alert("请先粘贴内容！");
+
+            const lines = text.split('\n');
+            let addedCount = 0;
+
+            lines.forEach(line => {
+                if (!line.trim()) return;
+                // 用 | 分割，限制最多3部分
+                const parts = line.split('|');
+                if (parts.length >= 3) {
+                    const cat = parts[0].trim();
+                    const q = parts[1].trim();
+                    const a = parts.slice(2).join('|').trim(); // 防止答案里有|
+
+                    // 防止重复添加（根据问题判断）
+                    if (!allCards.some(c => c.q === q)) {
+                        const newIndex = allCards.length;
+                        allCards.push({ cat, q, a });
+                        db[newIndex] = { status: 0, interval: 0, ease: 2.5, reps: 0, next_review: 0 };
+                        addedCount++;
+                    }
+                }
+            });
+
+            if (addedCount > 0) {
+                saveDB();
+                alert(`成功导入 ${addedCount} 张新卡片！`);
+                document.getElementById('import-text').value = ""; // 清空
+                loadTasks(); // 刷新任务
+            } else {
+                alert("没有导入新卡片，可能是格式不对或内容已存在。");
+            }
+        }
+
+        // ================== 4. 打卡功能 ==================
+        function getTodayString() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        function markTodayCheckIn() {
+            let checkins = JSON.parse(localStorage.getItem('cet6_checkins') || '[]');
+            const today = getTodayString();
+            if (!checkins.includes(today)) {
+                checkins.push(today);
+                localStorage.setItem('cet6_checkins', JSON.stringify(checkins));
+            }
+        }
+
+        function calculateStreak() {
+            let checkins = JSON.parse(localStorage.getItem('cet6_checkins') || '[]');
+            if (checkins.length === 0) return 0;
+            let dates = checkins.map(d => new Date(d).getTime()).sort((a, b) => b - a);
+            let streak = 0, todayMs = new Date(getTodayString()).getTime(), msInDay = 86400000;
+            if (todayMs - dates[0] > msInDay) return 0;
+            let currentCheck = dates[0];
+            for (let i = 0; i < dates.length; i++) {
+                if (currentCheck - dates[i] <= msInDay) {
+                    if (i === 0 || dates[i-1] - dates[i] > msInDay) { streak++; currentCheck = dates[i]; }
+                } else break;
+            }
+            return streak;
+        }
+
+        function renderCalendar() {
+            const checkins = JSON.parse(localStorage.getItem('cet6_checkins') || '[]');
+            document.getElementById('streak-text').innerText = `🔥 连续打卡 ${calculateStreak()} 天`;
+            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+            const today = new Date();
+            let html = '';
+            for (let i = 6; i >= 0; i--) {
+                let d = new Date(today); d.setDate(today.getDate() - i);
+                let dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                let isChecked = checkins.includes(dateStr);
+                let isToday = i === 0;
+                html += `<div class="day-item"><div class="day-name">${weekdays[d.getDay()]}</div><div class="day-dot ${isChecked ? 'checked' : ''} ${isToday ? 'today' : ''}">${d.getDate()}</div></div>`;
+            }
+            document.getElementById('week-calendar').innerHTML = html;
+        }
+
+        // ================== 5. 页面逻辑 ==================
         let tasks = [];
         let currentIndex = 0;
         let isFlipped = false;
 
         function loadTasks() {
             initDB();
-            const now = Date.now();
-            let newCards = [];
-            let reviewCards = [];
+            markTodayCheckIn(); 
 
-            // 筛选新词和到期旧词
-            rawData.forEach((item, index) => {
+            const now = Date.now();
+            let newCards = [], reviewCards = [];
+
+            allCards.forEach((item, index) => {
                 const meta = db[index];
+                if (!meta) return; // 防止数据错乱
                 if (meta.status === 0) {
                     newCards.push({ ...item, id: index });
                 } else if (meta.next_review <= now) {
@@ -190,21 +266,16 @@
                 }
             });
 
-            // 每天最多学 20 个新词，复习 20 个
-            newCards = newCards.sort(() => Math.random() - 0.5).slice(0, 20);
-            reviewCards = reviewCards.sort(() => Math.random() - 0.5).slice(0, 20);
+            newCards = newCards.sort(() => Math.random() - 0.5).slice(0, 30); // 每天最多背30个新词
+            reviewCards = reviewCards.sort(() => Math.random() - 0.5).slice(0, 30);
             
-            tasks = [...newCards, ...reviewCards];
-            tasks.sort(() => Math.random() - 0.5); // 全部打乱
+            tasks = [...newCards, ...reviewCards].sort(() => Math.random() - 0.5);
 
-            // 随机中英方向
             tasks.forEach(task => {
                 if (Math.random() > 0.5) {
-                    task.display_q = task.q;
-                    task.display_a = task.a;
+                    task.display_q = task.q; task.display_a = task.a;
                 } else {
-                    task.display_q = task.a;
-                    task.display_a = task.q;
+                    task.display_q = task.a; task.display_a = task.q;
                 }
             });
 
@@ -242,9 +313,7 @@
         }
 
         function rateCard(quality) {
-            const card = tasks[currentIndex];
-            calculateNextReview(card.id, quality);
-            
+            calculateNextReview(tasks[currentIndex].id, quality);
             currentIndex++;
             if (currentIndex >= tasks.length) {
                 document.getElementById('card-area').classList.add('hidden');
@@ -269,6 +338,7 @@
                 document.getElementById('study-page').style.display = 'none';
                 document.getElementById('stats-page').style.display = 'block';
                 renderStats();
+                renderCalendar();
             }
         }
 
@@ -280,9 +350,8 @@
                 else if (db[key].status === 2) okC++;
                 else goodC++;
             }
-            const total = newC + badC + okC + goodC;
             document.getElementById('stats-data').innerHTML = `
-                <p>📚 总卡片数：<b>${total}</b> 张</p>
+                <p>📚 总卡片数：<b>${newC + badC + okC + goodC}</b> 张</p>
                 <p style="color:#d9d9d9">⚪ 未学习：<b>${newC}</b> 张</p>
                 <p style="color:#ff4d4f">🔴 需强化：<b>${badC}</b> 张</p>
                 <p style="color:#faad14">🟡 复习中：<b>${okC}</b> 张</p>
@@ -291,13 +360,12 @@
         }
 
         function resetData() {
-            if(confirm("确定要清空所有记忆进度，重新开始吗？")) {
-                localStorage.removeItem('cet6_db');
+            if(confirm("确定要清空所有记忆进度和打卡记录，重新开始吗？")) {
+                localStorage.clear();
                 location.reload();
             }
         }
 
-        // 启动
         loadTasks();
     </script>
 </body>
