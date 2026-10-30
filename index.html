@@ -276,7 +276,8 @@
                 div.innerHTML = `
                     <div class="card-header">
                         <span class="tag">${card.cat}</span>
-                        <span class="star-btn ${isStarred}" onclick="toggleStar(event, '${card.q.replace(/'/g, "\\'")}', this)">★</span>
+                       // 改这行 👇
+                        <span class="star-btn ${isStarred}" data-q="${card.q.replace(/"/g, '&quot;')}" onclick="toggleStar(event, this)">★</span>
                     </div>
                     <div class="question">${card.q}</div>
                     <div class="answer-area" onclick="revealAnswer(this)">
@@ -296,9 +297,9 @@
                 textEl.classList.add('hidden-ans');
             }
         }
-
-        function toggleStar(event, q, el) {
+        function toggleStar(event, el) {
             event.stopPropagation(); 
+            const q = el.getAttribute('data-q'); // 从属性里拿题目
             if (stars.includes(q)) {
                 stars = stars.filter(item => item !== q);
                 el.classList.remove('starred');
@@ -311,6 +312,7 @@
             localStorage.setItem('cet6_v4_stars', JSON.stringify(stars));
         }
 
+                
         function filterCategory(cat, tabEl) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             if(tabEl) tabEl.classList.add('active');
