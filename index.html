@@ -276,7 +276,6 @@
                 div.innerHTML = `
                     <div class="card-header">
                         <span class="tag">${card.cat}</span>
-                       // 改这行 👇
                         <span class="star-btn ${isStarred}" data-q="${card.q.replace(/"/g, '&quot;')}" onclick="toggleStar(event, this)">★</span>
                     </div>
                     <div class="question">${card.q}</div>
