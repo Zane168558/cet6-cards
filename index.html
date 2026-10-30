@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>六级语料库 · 50天冲刺</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#f9f6f0">
     <style>
         body { font-family: -apple-system, sans-serif; background: #f4f5f7; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
@@ -376,5 +378,15 @@
         renderTabs();
         renderFeed();
     </script>
+    <script>
+  // 注册 Service Worker 实现离线
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('离线缓存已启动！'))
+        .catch(err => console.log('离线缓存启动失败:', err));
+    });
+  }
+</script>
 </body>
 </html>
