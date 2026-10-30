@@ -101,9 +101,22 @@
             <h3>批量导入 (支持D1-D50)</h3>
             <p style="font-size:12px; color:#666;">格式：<b>分类|中文题目|英文答案</b> （每行一条）</p>
             <textarea id="import-text" placeholder="D1-翻译句式|随着...|With...&#10;D2-文化名词|春节|the Spring Festival"></textarea>
-            <div style="display:flex; gap:10px;">
+            
+            <!-- 新增的备份恢复区域 -->
+            <div style="margin: 15px 0; padding-top: 15px; border-top: 1px dashed #ccc;">
+                <h4 style="margin: 0 0 5px; font-size: 14px;">☁️ 多设备手动同步</h4>
+                <p style="font-size: 12px; color: #999; margin: 0 0 10px;">复制下方备份码发给手机/电脑，再点击“恢复”即可。</p>
+                <textarea id="backup-text" placeholder="点击下方“导出”按钮生成备份码..." style="height: 60px; background: #f9f9f9;"></textarea>
+                <div style="display:flex; gap:10px; margin-top: 10px;">
+                    <button onclick="exportData()" style="flex:1; padding:10px; border:none; background:#52c41a; color:white; border-radius:8px; font-size:14px;">📤 导出数据</button>
+                    <button onclick="importData()" style="flex:1; padding:10px; border:none; background:#fa8c16; color:white; border-radius:8px; font-size:14px;">📥 恢复数据</button>
+                </div>
+            </div>
+            <!-- 新增结束 -->
+
+            <div style="display:flex; gap:10px; margin-top: 20px;">
                 <button onclick="closeImport()" style="flex:1; padding:12px; border:none; background:#eee; border-radius:8px; font-size:16px;">取消</button>
-                <button onclick="doImport()" style="flex:1; padding:12px; border:none; background:#1890ff; color:white; border-radius:8px; font-size:16px;">一键导入</button>
+                <button onclick="doImport()" style="flex:1; padding:12px; border:none; background:#1890ff; color:white; border-radius:8px; font-size:16px;">一键导入卡片</button>
             </div>
         </div>
     </div>
@@ -373,6 +386,50 @@
                 document.getElementById('pet-speech').innerText = `距考试 ${daysLeft} 天`;
             }, 3000);
         }
+                // ================= 多设备同步功能 =================
+        function exportData() {
+            // 打包所有数据
+            const backupObj = {
+                cards: allCards,
+                stars: stars,
+                lastCheckin: localStorage.getItem('cet6_last_checkin'),
+                streak: localStorage.getItem('cet6_streak')
+            };
+            const backupStr = JSON.stringify(backupObj);
+            document.getElementById('backup-text').value = backupStr;
+            
+            // 自动全选方便复制
+            document.getElementById('backup-text').select();
+            document.execCommand('copy'); // 尝试自动复制
+            alert("✅ 备份码已生成并尝试复制！\n请发给你的另一台设备。");
+        }
+
+        function importData() {
+            const backupStr = document.getElementById('backup-text').value.trim();
+            if (!backupStr) return alert("请先粘贴备份码！");
+            
+            try {
+                const backupObj = JSON.parse(backupStr);
+                if (!backupObj.cards || !backupObj.stars) throw new Error("格式错误");
+                
+                // 覆盖本地数据
+                localStorage.setItem('cet6_v4_cards', JSON.stringify(backupObj.cards));
+                localStorage.setItem('cet6_v4_stars', JSON.stringify(backupObj.stars));
+                if (backupObj.lastCheckin) localStorage.setItem('cet6_last_checkin', backupObj.lastCheckin);
+                if (backupObj.streak) localStorage.setItem('cet6_streak', backupObj.streak);
+                
+                alert("✅ 数据恢复成功！即将刷新页面...");
+                location.reload(); // 刷新页面应用新数据
+            } catch (e) {
+                alert("❌ 备份码无效，请检查是否复制完整！");
+            }
+        }
+        // ==================================================
+
+        // 初始化执行
+        initExamTime();
+        renderTabs();
+        renderFeed();
 
         // 初始化执行
         initExamTime();
