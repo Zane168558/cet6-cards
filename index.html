@@ -57,8 +57,8 @@
 
         /* 导入弹窗 */
         #import-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; justify-content: center; align-items: center; }
-        .modal-content { background: white; width: 90%; max-width: 400px; padding: 20px; border-radius: 16px; }
-        textarea { width: 100%; height: 200px; margin: 10px 0; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; font-family: monospace; font-size: 13px;}
+        .modal-content { background: white; width: 90%; max-width: 400px; padding: 20px; border-radius: 16px; max-height: 90vh; overflow-y: auto; }
+        textarea { width: 100%; height: 120px; margin: 10px 0; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; font-family: monospace; font-size: 13px;}
 
         /* 打卡成功Toast */
         #checkin-toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px); background: #52c41a; color: white; padding: 10px 20px; border-radius: 20px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 12px rgba(82,196,26,0.3); opacity: 0; transition: all 0.3s; z-index: 200; pointer-events: none; }
@@ -95,14 +95,14 @@
         <div class="nav-item" id="nav-import" onclick="switchMainView('import')">导入新资料</div>
     </div>
 
-    <!-- 导入弹窗 -->
+    <!-- 导入弹窗 (包含多设备同步区) -->
     <div id="import-modal">
         <div class="modal-content">
             <h3>批量导入 (支持D1-D50)</h3>
             <p style="font-size:12px; color:#666;">格式：<b>分类|中文题目|英文答案</b> （每行一条）</p>
             <textarea id="import-text" placeholder="D1-翻译句式|随着...|With...&#10;D2-文化名词|春节|the Spring Festival"></textarea>
             
-            <!-- 新增的备份恢复区域 -->
+            <!-- 多设备同步区 -->
             <div style="margin: 15px 0; padding-top: 15px; border-top: 1px dashed #ccc;">
                 <h4 style="margin: 0 0 5px; font-size: 14px;">☁️ 多设备手动同步</h4>
                 <p style="font-size: 12px; color: #999; margin: 0 0 10px;">复制下方备份码发给手机/电脑，再点击“恢复”即可。</p>
@@ -112,7 +112,7 @@
                     <button onclick="importData()" style="flex:1; padding:10px; border:none; background:#fa8c16; color:white; border-radius:8px; font-size:14px;">📥 恢复数据</button>
                 </div>
             </div>
-            <!-- 新增结束 -->
+            <!-- 同步区结束 -->
 
             <div style="display:flex; gap:10px; margin-top: 20px;">
                 <button onclick="closeImport()" style="flex:1; padding:12px; border:none; background:#eee; border-radius:8px; font-size:16px;">取消</button>
@@ -141,15 +141,12 @@
             const examDate = new Date('2026-12-19T00:00:00'); // 考试日
             const today = new Date();
             
-            // 计算距离天数
             const msPerDay = 24 * 60 * 60 * 1000;
             daysLeft = Math.ceil((examDate - today) / msPerDay);
             if (daysLeft < 0) daysLeft = 0;
 
-            // 日期字符串处理
             const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
             
-            // 计算昨天的日期字符串
             const yesterday = new Date(today);
             yesterday.setDate(yesterday.getDate() - 1);
             const yesterdayStr = yesterday.getFullYear() + '-' + String(yesterday.getMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getDate()).padStart(2, '0');
@@ -161,32 +158,24 @@
             const badge = document.getElementById('streak-badge');
 
             if (lastCheckin !== todayStr) {
-                // 今天还没打卡
                 if (lastCheckin === yesterdayStr) {
-                    // 昨天打了，连签+1
                     streak++;
                 } else if (lastCheckin) {
-                    // 断签了，重新计算
                     streak = 1;
                 } else {
-                    // 第一次用
                     streak = 1;
                 }
 
-                // 保存数据
                 localStorage.setItem('cet6_last_checkin', todayStr);
                 localStorage.setItem('cet6_streak', streak);
                 
-                // 视觉反馈
                 bubble.innerText = `📅 打卡成功！已连签 ${streak} 天\n距考试还有 ${daysLeft} 天，冲鸭！`;
                 triggerPetJump();
                 showToast(`✅ 今日打卡成功，已连签 ${streak} 天！`);
             } else {
-                // 今天已经打过卡了
                 bubble.innerText = `继续刷语料吧！距考试还有 ${daysLeft} 天~`;
             }
 
-            // 更新徽章
             if (streak > 0) {
                 badge.style.display = 'inline-block';
                 badge.innerText = `🔥 连签 ${streak} 天`;
@@ -196,7 +185,7 @@
         function triggerPetJump() {
             const pet = document.getElementById('pet-mascot');
             pet.classList.remove('jump');
-            void pet.offsetWidth; // 强制重绘
+            void pet.offsetWidth;
             pet.classList.add('jump');
         }
 
@@ -211,7 +200,6 @@
             ];
             document.getElementById('pet-speech').innerText = phrases[Math.floor(Math.random() * phrases.length)];
             
-            // 3秒后恢复倒计时
             setTimeout(() => {
                 document.getElementById('pet-speech').innerText = `距考试 ${daysLeft} 天`;
             }, 3000);
@@ -309,9 +297,10 @@
                 textEl.classList.add('hidden-ans');
             }
         }
+
         function toggleStar(event, el) {
             event.stopPropagation(); 
-            const q = el.getAttribute('data-q'); // 从属性里拿题目
+            const q = el.getAttribute('data-q');
             if (stars.includes(q)) {
                 stars = stars.filter(item => item !== q);
                 el.classList.remove('starred');
@@ -324,7 +313,6 @@
             localStorage.setItem('cet6_v4_stars', JSON.stringify(stars));
         }
 
-                
         function filterCategory(cat, tabEl) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             if(tabEl) tabEl.classList.add('active');
@@ -386,9 +374,9 @@
                 document.getElementById('pet-speech').innerText = `距考试 ${daysLeft} 天`;
             }, 3000);
         }
-                // ================= 多设备同步功能 =================
+
+        // ================= 多设备同步功能 =================
         function exportData() {
-            // 打包所有数据
             const backupObj = {
                 cards: allCards,
                 stars: stars,
@@ -397,29 +385,23 @@
             };
             const backupStr = JSON.stringify(backupObj);
             document.getElementById('backup-text').value = backupStr;
-            
-            // 自动全选方便复制
             document.getElementById('backup-text').select();
-            document.execCommand('copy'); // 尝试自动复制
+            document.execCommand('copy');
             alert("✅ 备份码已生成并尝试复制！\n请发给你的另一台设备。");
         }
 
         function importData() {
             const backupStr = document.getElementById('backup-text').value.trim();
             if (!backupStr) return alert("请先粘贴备份码！");
-            
             try {
                 const backupObj = JSON.parse(backupStr);
                 if (!backupObj.cards || !backupObj.stars) throw new Error("格式错误");
-                
-                // 覆盖本地数据
                 localStorage.setItem('cet6_v4_cards', JSON.stringify(backupObj.cards));
                 localStorage.setItem('cet6_v4_stars', JSON.stringify(backupObj.stars));
                 if (backupObj.lastCheckin) localStorage.setItem('cet6_last_checkin', backupObj.lastCheckin);
                 if (backupObj.streak) localStorage.setItem('cet6_streak', backupObj.streak);
-                
                 alert("✅ 数据恢复成功！即将刷新页面...");
-                location.reload(); // 刷新页面应用新数据
+                location.reload();
             } catch (e) {
                 alert("❌ 备份码无效，请检查是否复制完整！");
             }
@@ -430,21 +412,16 @@
         initExamTime();
         renderTabs();
         renderFeed();
-
-        // 初始化执行
-        initExamTime();
-        renderTabs();
-        renderFeed();
     </script>
     <script>
-  // 注册 Service Worker 实现离线
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
-        .then(reg => console.log('离线缓存已启动！'))
-        .catch(err => console.log('离线缓存启动失败:', err));
-    });
-  }
-</script>
+      // 注册 Service Worker 实现离线
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('离线缓存已启动！'))
+            .catch(err => console.log('离线缓存启动失败:', err));
+        });
+      }
+    </script>
 </body>
 </html>
